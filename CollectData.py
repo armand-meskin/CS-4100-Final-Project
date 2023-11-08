@@ -15,11 +15,19 @@ while True:
         formatMonth = month
         if formatMonth < 10:
             formatMonth = "0" + str(formatMonth)
-        url = f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=NVDA&interval=1min&month={year}-{formatMonth}&outputsize=full&adjusted=false&datatype=json&extended_hours=false&apikey=3BAAT9BW5TUZBZY8'
+        url = f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=NVDA&interval=1min&month={year}-{formatMonth}&outputsize=full&adjusted=true&datatype=json&extended_hours=false&apikey=3BAAT9BW5TUZBZY8'
         r = requests.get(url)
         print("Request revieved...")
+        arr_temp = []
         for key in r.json()["Time Series (1min)"]:
-            runningDict[key] = r.json()["Time Series (1min)"][key]
+            arr_temp.append((key, r.json()["Time Series (1min)"][key]))
+
+        # Fix the order of our data
+        arr_temp.reverse()
+
+        for item in arr_temp:
+            runningDict[item[0]] = item[1]
+        
         print(f"Completed entries for req for: {year} - {month}")
         month += 1
         if year == 2023 and month == 12:
@@ -30,7 +38,7 @@ while True:
         print("avoided rate limit")
     if year == 2023 and month == 12:
         break
-    month = 0
+    month = 1
     year += 1
 
 with open('data.json', 'w') as file:

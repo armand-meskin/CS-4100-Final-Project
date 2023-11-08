@@ -15,42 +15,43 @@ def load_dat_dict(filename):
     f = open(filename)
     return json.load(f)
 
-# We need to take out all chains of 4 weeks that contain holidays
+
+
+# Our data needs to be in chains of four weeks and we need to interpolate fake holiday data
 def process_dat(data):
     date_format = '%Y-%m-%d %H:%M:%S'
-    proccessed_dat = dict()
-    temp = []
-    indicator = 0 # Monday
-    chain_len = 0
+    data_truncate = data.copy()
+
+    # Omit the first days in our data that arent Monday
     for key in data.keys():
         day = datetime.strptime(key, date_format)
-        #print(str(day.weekday()))
-        if day.weekday() == indicator:
-            temp.append(key)
+        if day.weekday() != 0:
+            data_truncate.pop(key)
         else:
-            if day.weekday() == indicator + 1:
-                temp.append(key)
-                indicator += 1
-                continue
-            elif indicator == 4:
+            break
+
+    indicator = 0
+    holidays = []
+    for key in data_truncate.keys():
+        day = datetime.strptime(key, date_format)
+        # Day is as expected
+        if day.weekday() == indicator:
+            # Closed stock market on weekends wrap to Monday
+            if indicator == 4:
                 indicator = 0
-                chain_len += 1
-                # temp contains keys for a valid week
-                if chain_len == 4:
-                    chain_len = 0
-                    for key in temp:
-                        proccessed_dat[key] = data[key]
-                    temp = []
             else:
-                # This week is incomplete
-                indicator = 0
-                chain_len = 0
-                temp = []
-    
-            
-    
-    with open('processed-data.json', 'w') as file:
-        json.dump(proccessed_dat, file, indent=4)
+                indicator += 1
+        # Day is unexpected there is a Holiday
+        else:
+            holidays.append(key)
+            print("Hi")
+
+
+
+# Given a holiday interpolate data between the next open market day and the previous
+def interpolate():
+    print("Placeholder")
+
 
 
 

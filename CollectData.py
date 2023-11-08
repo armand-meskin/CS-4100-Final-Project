@@ -9,7 +9,7 @@ year = 2018
 month = 11
 runningDict = dict()
     
-
+'''
 while True:
     while month != 13:
         formatMonth = month
@@ -43,9 +43,13 @@ while True:
 
 with open('data.json', 'w') as file:
     json.dump(runningDict, file, indent=4)
-#url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=NVDA&interval=1min&month=2019-11&outputsize=full&adjusted=false&datatype=json&extended_hours=false&apikey=3BAAT9BW5TUZBZY8'
-#r = requests.get(url)
-#data = r.json()
 
-#print(data)
+'''
+url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=NVDA&interval=1min&month=2021-04&outputsize=full&adjusted=false&datatype=json&extended_hours=false&apikey=3BAAT9BW5TUZBZY8'
+r = requests.get(url)
+data = r.json()
+
+print(data)
+with open('damaged.json', 'w') as file:
+    json.dump(r.json(), file, indent=4)
 print("done")

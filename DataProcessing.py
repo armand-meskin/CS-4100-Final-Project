@@ -11,7 +11,7 @@ def load_dat_array(filename):
     return arr_dat
 
 # Load data from json to a dictionary
-def load_dat_dict(filename):
+def load_dat_dict(filename): 
     f = open(filename)
     return json.load(f)
 
@@ -29,6 +29,11 @@ def process_dat(data):
             data_truncate.pop(key)
         else:
             break
+
+
+    # Fix damaged data that is missing minutes
+    for key in data_truncate.keys():
+        print("Fix the data...")
 
     indicator = 0
     holidays = []

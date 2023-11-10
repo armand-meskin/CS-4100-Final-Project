@@ -185,6 +185,18 @@ def process_dat(data):
             data_array.pop()
         else:
             break
+
+    # Ensure our data is in chains of four weeks
+    while True:
+        # 1950 points is one week worth of points
+        if (len(data_array) / 1950) % 4 != 0:
+            for i in range(1950):
+                # Remove the week thats the least recent 
+                data_array.pop(0)
+        else:
+            print("Data is in chains of four")
+            break
+
     
     verify_itegrity(dict(data_array))
     out = open("Processed-Data.json", "w") 

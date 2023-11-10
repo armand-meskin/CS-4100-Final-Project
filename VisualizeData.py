@@ -11,7 +11,7 @@ def load_dat(filename):
 
 
 
-X_Train = load_dat('data.json')
+X_Train = load_dat('test-file2.json')
 iteration = []
 for i in range(0, len(X_Train)):
     iteration.append(i)

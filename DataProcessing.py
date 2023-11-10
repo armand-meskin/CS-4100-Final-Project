@@ -23,7 +23,7 @@ def load_dat_dict(filename):
 # Our data needs to be in chains of four weeks and we need to interpolate fake holiday and damaged data
 def process_dat(data):
     date_format = '%Y-%m-%d %H:%M:%S'
-    '''
+    
     data_truncate = data.copy()
 
     # Omit the first days in our data that arent Monday
@@ -111,12 +111,13 @@ def process_dat(data):
 
     #out = open("test-file.json", "w") 
     #json.dump(data_truncate, out, indent=4)
-    '''
+    
+
     # THIS IS TEMPORARY
-    data_truncate = load_dat_dict('test-file.json')
-    data_array = []
-    for id in data_truncate.keys():
-        data_array.append((id, data_truncate[id]))
+    #data_truncate = load_dat_dict('test-file.json')
+    #data_array = []
+    #for id in data_truncate.keys():
+    #    data_array.append((id, data_truncate[id]))
 
 
 
@@ -176,8 +177,19 @@ def process_dat(data):
                     index += 1
                 index += 390
 
-    out = open("test-file2.json", "w") 
+
+
+    # Remove trailing days at end of our data from incomplete weeks...
+    while True:
+        if datetime.strptime(data_array[len(data_array) - 1][0], date_format).weekday() != 4:
+            data_array.pop()
+        else:
+            break
+    
+    verify_itegrity(dict(data_array))
+    out = open("Processed-Data.json", "w") 
     json.dump(dict(data_array), out, indent=4)
+    return dict(data_array)
 
 
 
@@ -216,6 +228,35 @@ def interpolate(holiday, previous_day, next_day, data_trunc):
         
 
 
+# Verify data format
+def verify_itegrity(data):
+    data_array = []
+    for id in data.keys():
+        data_array.append((id, data[id]))
+    date_format = '%Y-%m-%d %H:%M:%S'
+    next = datetime.strptime(data_array[0][0], date_format)
+    count = 0
+    for item in data_array:
+        current = datetime.strptime(item[0], date_format)
+        if item[0] != next.strftime(date_format):
+            print("Integrity violation at item: ", item)
+            print("Expected: ", next)
+            raise Exception("Integrity Violation")
+
+        if "15:59:00" in item[0] and current.weekday() == 4:
+            next = current + timedelta(days=3)
+            temp = next.strftime(date_format).split(" ")[0] + " 09:30:00"
+            next = datetime.strptime(temp, date_format)
+        elif "15:59:00" in item[0]:
+            next = current + timedelta(days=1)
+            temp = next.strftime(date_format).split(" ")[0] + " 09:30:00"
+            next = datetime.strptime(temp, date_format)
+        else:
+            next = current + timedelta(minutes=1)
+        count += 1
+    print(f"Integrity verfied, {len(data_array)} verfied points")
+        
+
 
 
 
@@ -232,6 +273,9 @@ def build_examples(data):
 
 
 data = load_dat_dict('data.json')
-process_dat(data)
+processed = process_dat(data)
+
+#processed = load_dat_dict('test-file2.json')
+#verify_itegrity(processed)
 
 #print(interpolate('2021-07-29', '2021-07-28', '2018-11-30', data))

@@ -270,22 +270,8 @@ def verify_itegrity(data):
         
 
 
-
-
-
-
-# Format array of data into an array of examples
-def build_examples(data):
-    # Offset begins at 0
-    offset = 0
-    # Thirty min increments in an example
-    spacing = 30
-    # 390 in a day so 30*390 is a month
-    example_space = 11700
-
-
-data = load_dat_dict('data.json')
-processed = process_dat(data)
+#data = load_dat_dict('data.json')
+#processed = process_dat(data)
 
 #processed = load_dat_dict('test-file2.json')
 #verify_itegrity(processed)

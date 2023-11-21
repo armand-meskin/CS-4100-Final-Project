@@ -11,7 +11,7 @@ def load_dat_close(filename):
 
 
 
-X_Train = load_dat_close('data.json')
+X_Train = load_dat_close('processed-data.json')
 iteration = []
 for i in range(0, len(X_Train)):
     iteration.append(i)

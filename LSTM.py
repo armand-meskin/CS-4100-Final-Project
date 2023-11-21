@@ -78,6 +78,7 @@ Y_Valid = torch.tensor(Y_Valid, dtype=torch.float).to(device)
 in_size = len(X_Train[0])
 out_size = len(Y_Train[0])
 
+print("Hidden: ", in_size)
 
 model = Net(in_size, out_size).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)

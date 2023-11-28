@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 # Make training data in increments of m_delta, m_delta must be a divisor of 7800 (four weeks of mins)
 def make_traing(raw, m_delta):
-    print("Preping data, this may take a minute.")
+    print("Prepping data, this may take a minute.")
     X_Train = []
     Y_Train = []
 

@@ -90,10 +90,10 @@ class CustomLSTM(nn.Module):
 
 # Parameters
 input_size = len(X_Train[0])
-hidden_size = 4  # can be adjusted
+hidden_size = 2  # can be adjusted
 num_layers = 1
 num_epochs = 3  # for example
-learning_rate = 0.1
+learning_rate = 0.5
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
 
@@ -112,6 +112,7 @@ for epoch in range(num_epochs):
     hidden = (torch.zeros(num_layers, 1, hidden_size),
               torch.zeros(num_layers, 1, hidden_size))
 
+    average_loss = []
     for i in tqdm(range(len(X_Train))):
         # Detach the hidden state to prevent in-place modifications
         hidden = tuple([h.detach() for h in hidden])
@@ -124,19 +125,19 @@ for epoch in range(num_epochs):
 
         # Compute Loss
         loss = criterion(out[-1], YTrain_tensor[i])
-
+        average_loss.append(loss.item())
         # Backward pass and optimize
         loss.backward()
         optimizer.step()
 
-    
-    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    print("AVG: ", sum(average_loss) / len(average_loss))
+    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}')
 
 
 val_loss = validate_model(model, XValid_tensor, YValid_tensor, criterion)
-print(f'Validation Loss: {val_loss:.4f}')
+print(f'Validation Loss: {val_loss}')
 
-torch.save(model, 'model.pth')
+torch.save(model.state_dict(), 'model_state_dict.pth')
 
 
 

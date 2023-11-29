@@ -90,9 +90,9 @@ class CustomLSTM(nn.Module):
 
 # Parameters
 input_size = len(X_Train[0])
-hidden_size = 2  # can be adjusted
+hidden_size = 10  # can be adjusted
 num_layers = 1
-num_epochs = 3  # for example
+num_epochs = 2  # for example
 learning_rate = 0.5
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
@@ -122,7 +122,7 @@ for epoch in range(num_epochs):
 
         # Forward pass
         out, hidden = model(XTrain_tensor[i].unsqueeze(1), hidden)
-
+        print(out)
         # Compute Loss
         loss = criterion(out[-1], YTrain_tensor[i])
         average_loss.append(loss.item())

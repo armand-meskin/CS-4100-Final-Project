@@ -93,7 +93,7 @@ input_size = len(X_Train[0])
 hidden_size = 4  # can be adjusted
 num_layers = 1
 num_epochs = 3  # for example
-learning_rate = 0.02
+learning_rate = 0.01
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
 
@@ -107,14 +107,12 @@ YTrain_tensor = torch.tensor(Y_Train, dtype=torch.float)
 XValid_tensor = torch.tensor(X_Valid, dtype=torch.float).view(-1, 1, input_size)
 YValid_tensor = torch.tensor(Y_Valid, dtype=torch.float)
 
-torch.autograd.set_detect_anomaly(True)
-
 for epoch in range(num_epochs):
     model.train()
     hidden = (torch.zeros(num_layers, 1, hidden_size),
               torch.zeros(num_layers, 1, hidden_size))
 
-    for i in range(len(X_Train)):
+    for i in tqdm(range(len(X_Train))):
         # Detach the hidden state to prevent in-place modifications
         hidden = tuple([h.detach() for h in hidden])
 
@@ -137,5 +135,8 @@ for epoch in range(num_epochs):
 
 val_loss = validate_model(model, XValid_tensor, YValid_tensor, criterion)
 print(f'Validation Loss: {val_loss:.4f}')
+
+torch.save(model, 'model.pth')
+
 
 

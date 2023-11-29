@@ -93,7 +93,7 @@ input_size = len(X_Train[0])
 hidden_size = 4  # can be adjusted
 num_layers = 1
 num_epochs = 3  # for example
-learning_rate = 0.01
+learning_rate = 0.1
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
 

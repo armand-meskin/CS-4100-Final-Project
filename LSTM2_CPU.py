@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 # Make training data in increments of m_delta, m_delta must be a divisor of 7800 (four weeks of mins)
 def make_traing(raw, m_delta):
-    print("Preping data, this may take a minute.")
+    print("Prepping data, this may take a minute.")
     X_Train = []
     Y_Train = []
 
@@ -46,6 +46,21 @@ def make_traing(raw, m_delta):
     Y_Valid.reverse()
 
     return X_Train, Y_Train, X_Valid, Y_Valid
+
+def validate_model(model, X_val, Y_val, criterion):
+    model.eval()  # Set the model to evaluation mode
+    val_loss = 0.0
+    with torch.no_grad():  # Turn off gradients
+        for i in range(len(X_val)):
+            # Forward pass
+            out, _ = model(X_val[i].unsqueeze(1), (torch.zeros(num_layers, 1, hidden_size),
+                                                   torch.zeros(num_layers, 1, hidden_size)))
+
+            # Compute Loss
+            loss = criterion(out[-1], Y_val[i])
+            val_loss += loss.item()
+    
+    return val_loss / len(X_val)
         
 
 
@@ -53,7 +68,8 @@ class SimpleLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(SimpleLSTM, self).__init__()
         self.hidden_size = hidden_size
-        self.lstm = nn.LSTM(input_size, hidden_size)
+        self.num_layers = 3
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
         self.linear = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
@@ -63,55 +79,75 @@ class SimpleLSTM(nn.Module):
 
 raw_data = load_dat_array('processed-data.json')
 
+
 delta = 60
 X_Train, Y_Train, X_Valid, Y_Valid = make_traing(raw_data, delta)
+
+print(len(X_Train))
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Device is: {device}")
 
-# Example input and output dimensions
-input_size = 1  # Number of input features (in this case, 1 feature at each time step)
-hidden_size = 20  # Number of features in the hidden state
-output_size = 1   # Number of output features (single value prediction)
+class CustomLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, output_size=1):
+        super(CustomLSTM, self).__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers)
+        self.fc = nn.Linear(hidden_size, output_size)  # Add a linear layer
 
-model = SimpleLSTM(input_size, hidden_size, output_size)
 
-x_train = torch.tensor(X_Train, dtype=torch.float32)
-y_train = torch.tensor(Y_Train, dtype=torch.float32)
+    def forward(self, x, hidden):
+        out, hidden = self.lstm(x, hidden)
+        out = self.fc(out[-1])  # Apply the linear layer to the last output
+        return out, hidden
 
-x_val = torch.tensor(X_Valid, dtype=torch.float32)
-y_val = torch.tensor(Y_Valid, dtype=torch.float32)
-print("Stuck?")
+# Parameters
+input_size = len(X_Train[0])
+hidden_size = 10  # can be adjusted
+num_layers = 1
+num_epochs = 1  # for example
+learning_rate = 0.01
 
-loss_function = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-print("Stuck?2")
-def train(model, loss_function, optimizer, x_train, y_train, x_val, y_val, epochs=50):
-    print("Stuck?3")
-    for epoch in range(epochs):
-        print("Stuck?4")
+model = CustomLSTM(input_size, hidden_size, num_layers)
+
+# Loss and Optimizer
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+XTrain_tensor = torch.tensor(X_Train, dtype=torch.float).view(-1, 1, input_size)
+YTrain_tensor = torch.tensor(Y_Train, dtype=torch.float)
+
+XValid_tensor = torch.tensor(X_Valid, dtype=torch.float).view(-1, 1, input_size)
+YValid_tensor = torch.tensor(Y_Valid, dtype=torch.float)
+
+torch.autograd.set_detect_anomaly(True)
+
+for epoch in range(num_epochs):
+    model.train()
+    hidden = (torch.zeros(num_layers, 1, hidden_size),
+              torch.zeros(num_layers, 1, hidden_size))
+
+    for i in range(len(X_Train)):
+        # Detach the hidden state to prevent in-place modifications
+        hidden = tuple([h.detach() for h in hidden])
+
         # Zero the gradients
         optimizer.zero_grad()
 
         # Forward pass
-        y_pred = model(x_train)
+        out, hidden = model(XTrain_tensor[i].unsqueeze(1), hidden)
 
-        # Compute loss
-        loss = loss_function(y_pred, y_train)
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")
+        # Compute Loss
+        loss = criterion(out[-1], YTrain_tensor[i])
 
         # Backward pass and optimize
         loss.backward()
         optimizer.step()
 
-        # Validation
-        with torch.no_grad():
-            y_val_pred = model(x_val)
-            val_loss = loss_function(y_val_pred, y_val)
-            print(f"Validation Loss: {val_loss.item()}")
+    
+    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
 
-# Train the model
-train(model, loss_function, optimizer, x_train, y_train, x_val, y_val)
 
+val_loss = validate_model(model, XValid_tensor, YValid_tensor, criterion)
+print(f'Validation Loss: {val_loss:.4f}')
 
 

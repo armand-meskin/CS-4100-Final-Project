@@ -50,32 +50,20 @@ def make_traing(raw, m_delta):
 def validate_model(model, X_val, Y_val, criterion):
     model.eval()  # Set the model to evaluation mode
     val_loss = 0.0
+    results = []
     with torch.no_grad():  # Turn off gradients
         for i in range(len(X_val)):
             # Forward pass
             out, _ = model(X_val[i].unsqueeze(1), (torch.zeros(num_layers, 1, hidden_size),
                                                    torch.zeros(num_layers, 1, hidden_size)))
-
+            results.append(out)
             # Compute Loss
             loss = criterion(out[-1], Y_val[i])
             val_loss += loss.item()
-    
+    print("Actual", Y_val[len(Y_val) - 1])
+    print("Predicted", results[len(results) - 1])
     return val_loss / len(X_val)
         
-
-
-class SimpleLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(SimpleLSTM, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = 3
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
-        self.linear = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        lstm_out, _ = self.lstm(x)
-        predictions = self.linear(lstm_out[-1])
-        return predictions
 
 raw_data = load_dat_array('processed-data.json')
 
@@ -92,7 +80,7 @@ class CustomLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size=1):
         super(CustomLSTM, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers)
-        self.fc = nn.Linear(hidden_size, output_size)  # Add a linear layer
+        self.fc = nn.Linear(hidden_size, output_size)
 
 
     def forward(self, x, hidden):
@@ -102,10 +90,10 @@ class CustomLSTM(nn.Module):
 
 # Parameters
 input_size = len(X_Train[0])
-hidden_size = 10  # can be adjusted
+hidden_size = 4  # can be adjusted
 num_layers = 1
-num_epochs = 1  # for example
-learning_rate = 0.01
+num_epochs = 3  # for example
+learning_rate = 0.02
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
 

@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
@@ -73,24 +74,25 @@ class CustomLSTM(nn.Module):
         super(CustomLSTM, self).__init__()
         self.num_layers = num_layers  # number of layers
         self.hidden_size = hidden_size  # hidden state
-        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=0.5)
         self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
         h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size)  # hidden state
         c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size)  # internal state
         output, (hn, cn) = self.lstm(x, (h_0, c_0))
-        hn = hn.view(-1, self.hidden_size)
+        hn = F.relu(hn.view(-1, self.hidden_size))
         out = self.fc(hn)
         return out
 
 
 # Parameters
 input_size = X_train_tensor.shape[2]
-hidden_size = 2
+print(X_train_tensor.shape[2])
+hidden_size = 131
 num_layers = 1
-num_epochs = 100
-learning_rate = 0.1
+num_epochs = 200
+learning_rate = 0.05
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
 
@@ -110,6 +112,7 @@ for epoch in tqdm(range(num_epochs)):
         print(f'Epoch {epoch}: Loss = {loss.item()}')
 
 print("Finished training.")
+torch.save(model.state_dict(), 'model_state_dict.pth')
 
 to_predict = torch.Tensor(X)
 to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))

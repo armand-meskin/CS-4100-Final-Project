@@ -57,11 +57,10 @@ def validate_model(model, X_val, Y_val, criterion):
     with torch.no_grad():  # Turn off gradients
         for i in range(len(X_val)):
             # Forward pass
-            out, _ = model(X_val[i].unsqueeze(1), (torch.zeros(num_layers, 1, hidden_size),
-                                                   torch.zeros(num_layers, 1, hidden_size)))
-            results.append(out)
+            out = model(X_val[i].unsqueeze(1))
+            results.append(out.item())
             # Compute Loss
-            loss = criterion(out[-1], Y_val[i])
+            loss = criterion(out, Y_val[i])
             val_loss += loss.item()
     print("Actual", Y_val[len(Y_val) - 1])
     print("Predicted", results[len(results) - 1])
@@ -113,6 +112,7 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 XTrain_tensor = torch.tensor(X_Train, dtype=torch.float).view(-1, 1, input_size)
 YTrain_tensor = torch.tensor(Y_Train, dtype=torch.float)
+
 
 XValid_tensor = torch.tensor(X_Valid, dtype=torch.float).view(-1, 1, input_size)
 YValid_tensor = torch.tensor(Y_Valid, dtype=torch.float)

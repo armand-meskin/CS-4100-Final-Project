@@ -63,6 +63,8 @@ y_test_tensor = torch.Tensor(y_test)
 X_train_tensor = torch.reshape(X_train_tensor, (X_train_tensor.shape[0], 1, X_train_tensor.shape[1]))
 X_test_tensor = torch.reshape(X_test_tensor, (X_test_tensor.shape[0], 1, X_test_tensor.shape[1]))
 
+X_train_tensor.requires_grad_(True)
+
 print("Data ready.")
 
 

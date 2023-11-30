@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 # Make training data in increments of m_delta, m_delta must be a divisor of 7800 (four weeks of mins)
 def make_traing(raw, m_delta):
@@ -47,20 +48,26 @@ def make_traing(raw, m_delta):
 
     return X_Train, Y_Train, X_Valid, Y_Valid
 
-def validate_model(model, X_val, Y_val, criterion):
+def validate_model(model, X_val, Y_val, criterion, num_layers, hidden_size):
     model.eval()  # Set the model to evaluation mode
+
+    hidden = (torch.zeros(num_layers, 1, hidden_size),
+              torch.zeros(num_layers, 1, hidden_size))
+
     val_loss = 0.0
     results = []
     with torch.no_grad():  # Turn off gradients
-        for i in range(len(X_val)):
+        for i in tqdm(range(len(X_val))):
+            hidden = tuple([h.detach() for h in hidden])
             # Forward pass
-            out, _ = model(X_val[i].unsqueeze(1), (torch.zeros(num_layers, 1, hidden_size),
-                                                   torch.zeros(num_layers, 1, hidden_size)))
+            #print(X_val[i].unsqueeze(1))
+            out, hidden = model(X_val[i].unsqueeze(1), hidden)
             results.append(out)
             # Compute Loss
             loss = criterion(out[-1], Y_val[i])
             val_loss += loss.item()
-    print("Actual", Y_val[len(Y_val) - 1])
+    #print("Actual", Y_val[len(Y_val) - 1])
+    print("Predicted", results[1])
     print("Predicted", results[len(results) - 1])
     return val_loss / len(X_val)
         
@@ -77,40 +84,57 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Device is: {device}")
 
 class CustomLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output_size=1):
+    def __init__(self, input_size, hidden_size, num_layers, drop, output_size=1):
         super(CustomLSTM, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=drop)
         self.fc = nn.Linear(hidden_size, output_size)
-
+        self.relu = nn.ReLU()
 
     def forward(self, x, hidden):
         out, hidden = self.lstm(x, hidden)
-        out = self.fc(out[-1])  # Apply the linear layer to the last output
+        out = self.fc(out[-1])
+        out = self.relu(out)
         return out, hidden
 
 # Parameters
 input_size = len(X_Train[0])
-hidden_size = 10  # can be adjusted
+hidden_size = 4  # Adjust as needed
 num_layers = 1
-num_epochs = 2  # for example
-learning_rate = 0.5
+num_epochs = 1  # Increase as needed
+learning_rate = 0.1  # Adjust as needed
+dropout_rate = 0.9  # Optional, add if overfitting is observed
 
-model = CustomLSTM(input_size, hidden_size, num_layers)
+model = CustomLSTM(input_size, hidden_size, num_layers, dropout_rate)
 
 # Loss and Optimizer
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-XTrain_tensor = torch.tensor(X_Train, dtype=torch.float).view(-1, 1, input_size)
+
+XTrain_tensor = torch.tensor(X_Train, dtype=torch.float, requires_grad=True).view(-1, 1, input_size)
 YTrain_tensor = torch.tensor(Y_Train, dtype=torch.float)
 
-XValid_tensor = torch.tensor(X_Valid, dtype=torch.float).view(-1, 1, input_size)
+XValid_tensor = torch.tensor(X_Valid, dtype=torch.float, requires_grad=False).view(-1, 1, input_size)
 YValid_tensor = torch.tensor(Y_Valid, dtype=torch.float)
+
+XTrain_tensor.requires_grad_(True)
+
+#min_X = XTrain_tensor.min()
+#max_X = XTrain_tensor.max()
+#min_Y = YTrain_tensor.min()
+#max_Y = YTrain_tensor.max()
+
+#XTrain_tensor = (XTrain_tensor - min_X) / (max_X - min_X)
+#YTrain_tensor = (YTrain_tensor - min_Y) / (max_Y - min_Y)
+
+#XValid_tensor = (XValid_tensor - min_X) / (max_X - min_X)
+#YValid_tensor = (YValid_tensor - min_Y) / (max_Y - min_Y)
+
+hidden = (torch.zeros(num_layers, 1, hidden_size),
+              torch.zeros(num_layers, 1, hidden_size))
 
 for epoch in range(num_epochs):
     model.train()
-    hidden = (torch.zeros(num_layers, 1, hidden_size),
-              torch.zeros(num_layers, 1, hidden_size))
 
     average_loss = []
     for i in tqdm(range(len(X_Train))):
@@ -122,7 +146,6 @@ for epoch in range(num_epochs):
 
         # Forward pass
         out, hidden = model(XTrain_tensor[i].unsqueeze(1), hidden)
-        print(out)
         # Compute Loss
         loss = criterion(out[-1], YTrain_tensor[i])
         average_loss.append(loss.item())
@@ -134,10 +157,26 @@ for epoch in range(num_epochs):
     print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}')
 
 
-val_loss = validate_model(model, XValid_tensor, YValid_tensor, criterion)
+val_loss = validate_model(model, XValid_tensor, YValid_tensor, criterion, num_layers, hidden_size)
 print(f'Validation Loss: {val_loss}')
 
 torch.save(model.state_dict(), 'model_state_dict.pth')
 
+#model.load_state_dict(torch.load('model_state_dict.pth'))
+#model.eval()
 
+hidden = (torch.zeros(num_layers, 1, hidden_size),
+           torch.zeros(num_layers, 1, hidden_size))
+
+predictions = []
+for i in tqdm(range(len(X_Train))):
+     out, hidden = model(XTrain_tensor[i].unsqueeze(1), hidden)
+     predictions.append(out.item())
+
+plt.plot(Y_Train, label='Actual', linewidth=0.75)
+plt.plot(predictions, label='Predicted', linewidth=0.75)
+plt.ylabel('Price in USD')
+plt.xlabel('Samples')
+plt.legend()
+plt.show()
 

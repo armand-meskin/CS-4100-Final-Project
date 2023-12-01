@@ -95,7 +95,7 @@ num_layers = 1
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
 
-model.load_state_dict(torch.load('model_state_dict_2.pth'))
+model.load_state_dict(torch.load('model_state_dict.pth'))
 model.eval()
 to_predict = torch.Tensor(X)
 to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))
@@ -109,15 +109,6 @@ y = ss.inverse_transform(y)
 print(movement_indicator(y, pred, div))
 #model.load_state_dict(torch.load('model_state_dict.pth'))
 # model.eval()
-
-to_predict = torch.Tensor(X)
-to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))
-
-train_predict = model(to_predict)
-pred = train_predict.data.numpy()
-
-pred = ss.inverse_transform(pred)
-y = ss.inverse_transform(y)
 
 plt.axvline(x=x_dates[div].item(), c='r', linestyle='--')
 

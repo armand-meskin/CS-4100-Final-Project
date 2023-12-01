@@ -5,10 +5,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from datetime import datetime
 
-def sliding_window(raw, m_delta):
+def sliding_window(raw, dates, m_delta):
     X = []
     y = []
+    d = []
 
     temp = []
     idx = 0
@@ -28,10 +30,11 @@ def sliding_window(raw, m_delta):
             temp.append(raw[idx + offset])
             X.append(temp.copy())
             y.append([raw[idx + offset + m_delta]])
+            d.append([datetime.strptime(dates[idx + offset + m_delta], '%Y-%m-%d %H:%M:%S')])
             temp = []
             idx = 0
             offset += 1
-    return np.array(X), np.array(y)
+    return np.array(X), np.array(y), np.array(d)
 
 def movement_indicator(actual, predictions, div):
     # Build tuples
@@ -58,9 +61,9 @@ def movement_indicator(actual, predictions, div):
 
 print("Preparing data...")
 
-raw_data = load_dat_array('processed-data.json')
+keys, raw_data = load_dat_array('processed-data.json')
 
-X, y = sliding_window(raw_data, 60)
+X, y, x_dates = sliding_window(raw_data, list(keys), 60)
 
 ss = StandardScaler()
 
@@ -92,7 +95,7 @@ num_layers = 1
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
 
-model.load_state_dict(torch.load('model_state_dict.pth'))
+model.load_state_dict(torch.load('model_state_dict_2.pth'))
 model.eval()
 to_predict = torch.Tensor(X)
 to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))
@@ -104,10 +107,26 @@ pred = ss.inverse_transform(pred)
 y = ss.inverse_transform(y)
 
 print(movement_indicator(y, pred, div))
-plt.axvline(x=div, c='r', linestyle='--')
+#model.load_state_dict(torch.load('model_state_dict.pth'))
+# model.eval()
 
-plt.plot(y, label="Actual")
-plt.plot(pred, label="Prediction")
+to_predict = torch.Tensor(X)
+to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))
+
+train_predict = model(to_predict)
+pred = train_predict.data.numpy()
+
+pred = ss.inverse_transform(pred)
+y = ss.inverse_transform(y)
+
+plt.axvline(x=x_dates[div].item(), c='r', linestyle='--')
+
+plt.plot(x_dates, y, label="Actual")
+plt.plot(x_dates, pred, label="Prediction")
+plt.xlabel('Date')
+plt.ylabel('Close Price')
+plt.title('LSTM Predicts Nvidia Closing Stock Price')
+plt.legend()
 plt.show()
 
 

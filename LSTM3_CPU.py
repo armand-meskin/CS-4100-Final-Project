@@ -7,11 +7,13 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
+from datetime import datetime
 
 
-def sliding_window(raw, m_delta):
+def sliding_window(raw, dates, m_delta):
     X = []
     y = []
+    d = []
 
     temp = []
     idx = 0
@@ -31,16 +33,17 @@ def sliding_window(raw, m_delta):
             temp.append(raw[idx + offset])
             X.append(temp.copy())
             y.append([raw[idx + offset + m_delta]])
+            d.append([datetime.strptime(dates[idx + offset + m_delta], '%Y-%m-%d %H:%M:%S')])
             temp = []
             idx = 0
             offset += 1
-    return np.array(X), np.array(y)
+    return np.array(X), np.array(y), np.array(d)
 
 print("Preparing data...")
 
-raw_data = load_dat_array('processed-data.json')
+keys, raw_data = load_dat_array('processed-data.json')
 
-X, y = sliding_window(raw_data, 60)
+X, y, x_dates = sliding_window(raw_data, list(keys), 60)
 
 ss = StandardScaler()
 
@@ -88,10 +91,9 @@ class CustomLSTM(nn.Module):
 
 # Parameters
 input_size = X_train_tensor.shape[2]
-print(X_train_tensor.shape[2])
 hidden_size = 131
 num_layers = 1
-num_epochs = 200
+num_epochs = 20
 learning_rate = 0.05
 
 model = CustomLSTM(input_size, hidden_size, num_layers)
@@ -99,6 +101,7 @@ model = CustomLSTM(input_size, hidden_size, num_layers)
 # Loss and Optimizer
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+grads = []
 
 print("Beginning training...")
 for epoch in tqdm(range(num_epochs)):
@@ -108,11 +111,15 @@ for epoch in tqdm(range(num_epochs)):
     loss = criterion(outputs, y_train_tensor)
     loss.backward()
     optimizer.step()
+    grads.append(X_train_tensor.data.grad)
     if epoch % (num_epochs // 10) == 0:
         print(f'Epoch {epoch}: Loss = {loss.item()}')
 
 print("Finished training.")
-torch.save(model.state_dict(), 'model_state_dict.pth')
+torch.save(model.state_dict(), 'model_state_dict_2.pth')
+
+#model.load_state_dict(torch.load('model_state_dict.pth'))
+# model.eval()
 
 to_predict = torch.Tensor(X)
 to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))
@@ -123,8 +130,12 @@ pred = train_predict.data.numpy()
 pred = ss.inverse_transform(pred)
 y = ss.inverse_transform(y)
 
-plt.axvline(x=div, c='r', linestyle='--')
+plt.axvline(x=x_dates[div].item(), c='r', linestyle='--')
 
-plt.plot(y, label="Actual")
-plt.plot(pred, label="Prediction")
+plt.plot(x_dates, y, label="Actual")
+plt.plot(x_dates, pred, label="Prediction")
+plt.xlabel('Date')
+plt.ylabel('Close Price')
+plt.title('LSTM Predicts Nvidia Closing Stock Price')
+plt.legend()
 plt.show()

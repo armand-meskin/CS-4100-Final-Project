@@ -6,7 +6,7 @@ def load_dat_array(filename):
     f = open(filename)
     dat = json.load(f)
     f.close()
-    return [float(value['4. close']) for key, value in dat.items()]
+    return dat.keys(), [float(value['4. close']) for key, value in dat.items()]
 
 # Load data from json to a dictionary
 def load_dat_dict(filename): 

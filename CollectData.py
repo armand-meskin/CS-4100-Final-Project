@@ -1,55 +1,61 @@
 import requests
-import json
-import time
-import os
-# Collect the past 5 years and store in csv...
-# End at 2023-11 (yr-month)
-# Start at 2018-11 (yr-month)
-year = 2018
-month = 11
-runningDict = dict()
-    
-'''
-while True:
-    while month != 13:
-        formatMonth = month
-        if formatMonth < 10:
-            formatMonth = "0" + str(formatMonth)
-        url = f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=NVDA&interval=1min&month={year}-{formatMonth}&outputsize=full&adjusted=true&datatype=json&extended_hours=false&apikey=3BAAT9BW5TUZBZY8'
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
+
+data_dict = {'time': [],
+             'open': [],
+             'high': [],
+             'low': [],
+             'close': [],
+             'volume': []}
+for y in range(2018, 2024):
+    for i in tqdm(range(1, 13)):
+        url = (f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=PEP&interval=1min'
+               f'&month={y}-{str(i).zfill(2)}'
+               f'&outputsize=full&adjusted=false&datatype=json&extended_hours=false&apikey=3BAAT9BW5TUZBZY8')
         r = requests.get(url)
-        print("Request revieved...")
-        arr_temp = []
-        for key in r.json()["Time Series (1min)"]:
-            arr_temp.append((key, r.json()["Time Series (1min)"][key]))
+        data = r.json()
 
-        # Fix the order of our data
-        arr_temp.reverse()
+        for t, d in data['Time Series (1min)'].items():
+            data_dict['time'].append(t)
+            data_dict['open'].append(d['1. open'])
+            data_dict['high'].append(d['2. high'])
+            data_dict['low'].append(d['3. low'])
+            data_dict['close'].append(d['4. close'])
+            data_dict['volume'].append(d['5. volume'])
 
-        for item in arr_temp:
-            runningDict[item[0]] = item[1]
-        
-        print(f"Completed entries for req for: {year} - {month}")
-        month += 1
-        if year == 2023 and month == 12:
-            print("Five years accumulated...")
+stocks_df = pd.DataFrame(data_dict)
+stocks_df.sort_values(by=['time'], inplace=True)
+
+
+def sliding_window(raw, dates, chunk_size, m_delta):
+    X = []
+    y = []
+    d = []
+
+    for i in tqdm(range(0, len(raw))):
+        if i + chunk_size + m_delta > len(raw) - 1:
             break
-        print("waiting 4 secs...")
-        time.sleep(4)
-        print("avoided rate limit")
-    if year == 2023 and month == 12:
-        break
-    month = 1
-    year += 1
+        window = [raw[j + i] for j in range(0, chunk_size, m_delta)]
+        X.append(window)
+        y.append(raw[i + chunk_size + m_delta])
+        d.append(dates[i + chunk_size + m_delta])
 
-with open('data.json', 'w') as file:
-    json.dump(runningDict, file, indent=4)
+    return np.array(X), np.array(y), np.array(d)
 
-'''
-url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=NVDA&interval=1min&month=2021-04&outputsize=full&adjusted=false&datatype=json&extended_hours=false&apikey=3BAAT9BW5TUZBZY8'
-r = requests.get(url)
-data = r.json()
 
-print(data)
-with open('damaged.json', 'w') as file:
-    json.dump(r.json(), file, indent=4)
-print("done")
+raw = np.array(stocks_df['close'])
+
+X, y, d = sliding_window(raw, np.array(stocks_df['time']), 7800, 60)
+
+final_dict = {'time': d, 'target': y}
+
+for i in tqdm(range(len(X))):
+    for j in range(len(X[i])):
+        if i == 0:
+            final_dict[f'feature {j}'] = [X[i][j]]
+        else:
+            final_dict[f'feature {j}'].append(X[i][j])
+
+pd.DataFrame(final_dict).to_csv('pepsi_data.csv', index_label='index')

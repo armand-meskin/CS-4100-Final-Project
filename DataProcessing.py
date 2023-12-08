@@ -1,26 +1,23 @@
 import json
 from datetime import datetime, timedelta
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
 
-# Load data from json to an array
-def load_dat_array(filename):
-    f = open(filename)
-    dat = json.load(f)
-    f.close()
-    return dat.keys(), [float(value['4. close']) for key, value in dat.items()]
+STOCK_NAME = 'nvidia'
 
-# Load data from json to a dictionary
-def load_dat_dict(filename): 
-    f = open(filename)
-    dat = json.load(f)
-    f.close()
+
+# Load data from pandas to a dictionary
+def load_dat_dict(filename):
+    data_df = pd.read_csv(filename, index_col='time').drop('index', axis=1)
+    dat = data_df.to_dict(orient='index')
     return dat
-
 
 
 # Our data needs to be in chains of four weeks and we need to interpolate fake holiday and damaged data
 def process_dat(data):
     date_format = '%Y-%m-%d %H:%M:%S'
-    
+
     data_truncate = data.copy()
 
     # Omit the first days in our data that arent Monday
@@ -30,7 +27,6 @@ def process_dat(data):
             data_truncate.pop(key)
         else:
             break
-
 
     # Fix damaged data that is missing minutes
     data_array = []
@@ -58,18 +54,18 @@ def process_dat(data):
                     print("idx", data_array[index][0])
                     cleaned = False
 
-                    open2 = float(data_truncate[key]['1. open']) + float(data_array[index][1]['1. open'])
-                    high = float(data_truncate[key]['2. high']) + float(data_array[index][1]['2. high'])
-                    low = float(data_truncate[key]['3. low']) + float(data_array[index][1]['3. low'])
-                    close = float(data_truncate[key]['4. close']) + float(data_array[index][1]['4. close'])
-                    volume = float(data_truncate[key]['5. volume']) + float(data_array[index][1]['5. volume'])
+                    open2 = float(data_truncate[key]['open']) + float(data_array[index][1]['open'])
+                    high = float(data_truncate[key]['high']) + float(data_array[index][1]['high'])
+                    low = float(data_truncate[key]['low']) + float(data_array[index][1]['low'])
+                    close = float(data_truncate[key]['close']) + float(data_array[index][1]['close'])
+                    volume = float(data_truncate[key]['volume']) + float(data_array[index][1]['volume'])
 
                     temp = dict()
-                    temp['1. open'] = str(round(open2/2, 4))
-                    temp['2. high'] = str(round(high/2, 4))
-                    temp['3. low'] = str(round(low/2, 4))
-                    temp['4. close'] = str(round(close/2, 4))
-                    temp['5. volume'] = str(round(volume/2, 4))
+                    temp['open'] = str(round(open2 / 2, 4))
+                    temp['high'] = str(round(high / 2, 4))
+                    temp['low'] = str(round(low / 2, 4))
+                    temp['close'] = str(round(close / 2, 4))
+                    temp['volume'] = str(round(volume / 2, 4))
 
                     # Insert fabricated point
                     wrap = day + timedelta(days=1)
@@ -78,25 +74,25 @@ def process_dat(data):
                     wrap = wrap.strftime('%Y-%m-%d').split(" ")[0] + ' 09:30:00'
                     data_array.insert(index, (wrap, temp.copy()))
                     index += 1
-                
+
                 index += 1
 
             else:
                 # Damaged data found, interpolate missing point
                 print(f"Damaged point found: {dayNext.strftime(date_format)} when comparing {data_array[index][0]}")
                 cleaned = False
-                open2 = float(data_truncate[key]['1. open']) + float(data_array[index][1]['1. open'])
-                high = float(data_truncate[key]['2. high']) + float(data_array[index][1]['2. high'])
-                low = float(data_truncate[key]['3. low']) + float(data_array[index][1]['3. low'])
-                close = float(data_truncate[key]['4. close']) + float(data_array[index][1]['4. close'])
-                volume = float(data_truncate[key]['5. volume']) + float(data_array[index][1]['5. volume'])
+                open2 = float(data_truncate[key]['open']) + float(data_array[index][1]['open'])
+                high = float(data_truncate[key]['high']) + float(data_array[index][1]['high'])
+                low = float(data_truncate[key]['low']) + float(data_array[index][1]['low'])
+                close = float(data_truncate[key]['close']) + float(data_array[index][1]['close'])
+                volume = float(data_truncate[key]['volume']) + float(data_array[index][1]['volume'])
 
                 temp = dict()
-                temp['1. open'] = str(round(open2/2, 4))
-                temp['2. high'] = str(round(high/2, 4))
-                temp['3. low'] = str(round(low/2, 4))
-                temp['4. close'] = str(round(close/2, 4))
-                temp['5. volume'] = str(round(volume/2, 4))
+                temp['open'] = str(round(open2 / 2, 4))
+                temp['high'] = str(round(high / 2, 4))
+                temp['low'] = str(round(low / 2, 4))
+                temp['close'] = str(round(close / 2, 4))
+                temp['volume'] = str(round(volume / 2, 4))
 
                 # Insert fabricated point
                 data_array.insert(index, (dayNext.strftime(date_format), temp.copy()))
@@ -105,23 +101,10 @@ def process_dat(data):
         # Update our main dict
         print("Updating main dict")
         data_truncate = dict(data_array)
-
-    #out = open("test-file.json", "w") 
-    #json.dump(data_truncate, out, indent=4)
-    
-
-    # THIS IS TEMPORARY
-    #data_truncate = load_dat_dict('test-file.json')
-    #data_array = []
-    #for id in data_truncate.keys():
-    #    data_array.append((id, data_truncate[id]))
-
-
-
     index = 390
     cmp = " "
     for key in data_truncate.keys():
-        #print(f"First pass {key} and first idx {data_array[0][0]}")
+        # print(f"First pass {key} and first idx {data_array[0][0]}")
         if index >= len(data_array):
             break
         temp, extra = key.split(" ")
@@ -138,14 +121,15 @@ def process_dat(data):
         if dayNext.weekday() < 5:
             # Is a weekday
             if dayNext.strftime('%Y-%m-%d') == data_array[index][0].split(" ")[0]:
-                #print("The following day is present")
+                # print("The following day is present")
                 index += 390
             else:
                 # The following day is not present, there is a holiday
                 # interploate...
-                #print(f"Failed {dayNext.strftime('%Y-%m-%d')} and {data_array[index][0]} idx is {index}")
+                # print(f"Failed {dayNext.strftime('%Y-%m-%d')} and {data_array[index][0]} idx is {index}")
                 date2, time2 = data_array[index][0].split(" ")
-                generated_day = interpolate(dayNext.strftime('%Y-%m-%d'), day.strftime('%Y-%m-%d'), date2, data_truncate)
+                generated_day = interpolate(dayNext.strftime('%Y-%m-%d'), day.strftime('%Y-%m-%d'), date2,
+                                            data_truncate)
                 print("Inserted Holiday at Weekday: ", dayNext.strftime('%Y-%m-%d'))
                 print("mismatched idx: ", data_array[index][0])
                 for item in generated_day:
@@ -164,7 +148,7 @@ def process_dat(data):
                 continue
             else:
                 # Monday is a holiday interpolate...
-                #print(f"Failed {mon.strftime('%Y-%m-%d')} and {data_array[index][0]} idx is {index}")
+                # print(f"Failed {mon.strftime('%Y-%m-%d')} and {data_array[index][0]} idx is {index}")
                 date2, time2 = data_array[index][0].split(" ")
                 generated_day = interpolate(mon.strftime('%Y-%m-%d'), day.strftime('%Y-%m-%d'), date2, data_truncate)
                 print("Inserted Holiday at Monday: ", mon.strftime('%Y-%m-%d'))
@@ -173,8 +157,6 @@ def process_dat(data):
                     data_array.insert(index, item)
                     index += 1
                 index += 390
-
-
 
     # Remove trailing days at end of our data from incomplete weeks...
     while True:
@@ -194,12 +176,10 @@ def process_dat(data):
             print("Data is in chains of four")
             break
 
-    
     verify_itegrity(dict(data_array))
-    out = open("Processed-Data.json", "w") 
+    out = open("processed_data.json", "w")
     json.dump(dict(data_array), out, indent=4)
     return dict(data_array)
-
 
 
 # Given a holiday interpolate data between the next open market day and the previous
@@ -213,19 +193,24 @@ def interpolate(holiday, previous_day, next_day, data_trunc):
 
     generated = []
     while True:
-        open2 = float(data_trunc[start_key_next.strftime(date_format)]['1. open']) + float(data_trunc[start_key_prev.strftime(date_format)]['1. open'])
-        high = float(data_trunc[start_key_next.strftime(date_format)]['2. high']) + float(data_trunc[start_key_prev.strftime(date_format)]['2. high'])
-        low = float(data_trunc[start_key_next.strftime(date_format)]['3. low']) + float(data_trunc[start_key_prev.strftime(date_format)]['3. low'])
-        close = float(data_trunc[start_key_next.strftime(date_format)]['4. close']) + float(data_trunc[start_key_prev.strftime(date_format)]['4. close'])
-        volume = float(data_trunc[start_key_next.strftime(date_format)]['5. volume']) + float(data_trunc[start_key_prev.strftime(date_format)]['5. volume'])
+        open2 = float(data_trunc[start_key_next.strftime(date_format)]['open']) + float(
+            data_trunc[start_key_prev.strftime(date_format)]['open'])
+        high = float(data_trunc[start_key_next.strftime(date_format)]['high']) + float(
+            data_trunc[start_key_prev.strftime(date_format)]['high'])
+        low = float(data_trunc[start_key_next.strftime(date_format)]['low']) + float(
+            data_trunc[start_key_prev.strftime(date_format)]['low'])
+        close = float(data_trunc[start_key_next.strftime(date_format)]['close']) + float(
+            data_trunc[start_key_prev.strftime(date_format)]['close'])
+        volume = float(data_trunc[start_key_next.strftime(date_format)]['volume']) + float(
+            data_trunc[start_key_prev.strftime(date_format)]['volume'])
 
         temp = dict()
 
-        temp['1. open'] = str(round(open2/2, 4))
-        temp['2. high'] = str(round(high/2, 4))
-        temp['3. low'] = str(round(low/2, 4))
-        temp['4. close'] = str(round(close/2, 4))
-        temp['5. volume'] = str(round(volume/2, 4))
+        temp['open'] = str(round(open2 / 2, 4))
+        temp['high'] = str(round(high / 2, 4))
+        temp['low'] = str(round(low / 2, 4))
+        temp['close'] = str(round(close / 2, 4))
+        temp['volume'] = str(round(volume / 2, 4))
 
         generated.append((holiday.strftime(date_format), temp.copy()))
         # Last data point to be generated
@@ -234,7 +219,6 @@ def interpolate(holiday, previous_day, next_day, data_trunc):
         start_key_prev = start_key_prev + timedelta(minutes=1)
         start_key_next = start_key_next + timedelta(minutes=1)
         holiday = holiday + timedelta(minutes=1)
-        
 
 
 # Verify data format
@@ -264,13 +248,43 @@ def verify_itegrity(data):
             next = current + timedelta(minutes=1)
         count += 1
     print(f"Integrity verfied, {len(data_array)} verfied points")
-        
 
 
-#data = load_dat_dict('data.json')
-#processed = process_dat(data)
+data = load_dat_dict(f'all_data/{STOCK_NAME}_data.csv')
+processed = process_dat(data)
 
-#processed = load_dat_dict('test-file2.json')
-#verify_itegrity(processed)
+processed = load_dat_dict('test-file2.json')
+verify_itegrity(processed)
 
-#print(interpolate('2021-07-29', '2021-07-28', '2018-11-30', data))
+# we used json originally, but switched to pandas. so now we convert back to csv format
+def sliding_window(f_name, chunk_size, m_delta):
+    X = []
+    y = []
+    d = []
+
+    for i in tqdm(range(0, len(raw))):
+        if i + chunk_size + m_delta > len(raw) - 1:
+            break
+        window = [raw[j + i] for j in range(0, chunk_size, m_delta)]
+        X.append(window)
+        y.append(raw[i + chunk_size + m_delta])
+        d.append(dates[i + chunk_size + m_delta])
+
+    return np.array(X), np.array(y), np.array(d)
+
+
+data = json.load(open('processed_data.json'))
+raw, dates = np.array([i['4. close'] for i in data.values()]), np.array(list(data.keys()))
+
+X, y, d = sliding_window(raw, dates, 7800, 60)
+
+final_dict = {'time': d, 'target': y}
+
+for i in tqdm(range(len(X))):
+    for j in range(len(X[i])):
+        if i == 0:
+            final_dict[f'feature {j}'] = [X[i][j]]
+        else:
+            final_dict[f'feature {j}'].append(X[i][j])
+
+pd.DataFrame(final_dict).to_csv(f'all_data/{STOCK_NAME}_data.csv', index_label='index')

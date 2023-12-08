@@ -4,7 +4,6 @@ import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from datetime import datetime
@@ -116,26 +115,5 @@ for epoch in tqdm(range(num_epochs)):
         print(f'Epoch {epoch}: Loss = {loss.item()}')
 
 print("Finished training.")
-torch.save(model.state_dict(), 'model_state_dict_2.pth')
+torch.save(model.state_dict(), 'model_state_dict.pth')
 
-#model.load_state_dict(torch.load('model_state_dict.pth'))
-# model.eval()
-
-to_predict = torch.Tensor(X)
-to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))
-
-train_predict = model(to_predict)
-pred = train_predict.data.numpy()
-
-pred = ss.inverse_transform(pred)
-y = ss.inverse_transform(y)
-
-plt.axvline(x=x_dates[div].item(), c='r', linestyle='--')
-
-plt.plot(x_dates, y, label="Actual")
-plt.plot(x_dates, pred, label="Prediction")
-plt.xlabel('Date')
-plt.ylabel('Close Price')
-plt.title('LSTM Predicts Nvidia Closing Stock Price')
-plt.legend()
-plt.show()

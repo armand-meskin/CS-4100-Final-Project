@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
+STOCK_TICKER = "SHOP"
+STOCK_NAME = "shopify"
+
 data_dict = {'time': [],
              'open': [],
              'high': [],
@@ -11,7 +14,7 @@ data_dict = {'time': [],
              'volume': []}
 for y in range(2018, 2024):
     for i in tqdm(range(1, 13)):
-        url = (f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=PEP&interval=1min'
+        url = (f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={STOCK_TICKER}&interval=1min'
                f'&month={y}-{str(i).zfill(2)}'
                f'&outputsize=full&adjusted=false&datatype=json&extended_hours=false&apikey=3BAAT9BW5TUZBZY8')
         r = requests.get(url)
@@ -27,7 +30,6 @@ for y in range(2018, 2024):
 
 stocks_df = pd.DataFrame(data_dict)
 stocks_df.sort_values(by=['time'], inplace=True)
-
 
 def sliding_window(raw, dates, chunk_size, m_delta):
     X = []
@@ -58,4 +60,4 @@ for i in tqdm(range(len(X))):
         else:
             final_dict[f'feature {j}'].append(X[i][j])
 
-pd.DataFrame(final_dict).to_csv('pepsi_data.csv', index_label='index')
+pd.DataFrame(final_dict).to_csv(f'all_data/{STOCK_NAME}_data.csv', index_label='index')

@@ -8,7 +8,7 @@ from tqdm import tqdm
 import torch.nn.functional as F
 from os.path import exists
 
-STOCK_NAME = 'nvidia'
+STOCK_NAME = 'pepsi'
 
 def sliding_window(f_name, chunk_size, m_delta):
     stocks_df = pd.read_csv(f_name)
@@ -105,7 +105,7 @@ print('Beginning Training...')
 input_size = X_train_tensor.shape[2]
 hidden_size = 130
 num_layers = 1
-epochs = 100
+epochs = 20
 
 model = CustomLSTM(input_size, hidden_size, num_layers, X_train_tensor.shape[1])
 model.to(device)

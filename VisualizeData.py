@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 import torch.nn.functional as F
 import numpy as np
 
+STOCK_NAME = 'pepsi'
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size=1):
@@ -45,7 +46,7 @@ def movement_indicator(actual, predictions, div):
     return correct / (len(actual) - int(len(actual) * div))
 
 
-data_df = pd.read_csv('all_data/nvidia_data.csv')
+data_df = pd.read_csv(f'all_data/{STOCK_NAME}_data.csv')
 
 X = data_df.drop(['target', 'time'], axis=1).to_numpy()
 X = np.delete(X, len(X[0]) - 1, 1)
@@ -57,7 +58,7 @@ ss = StandardScaler()
 X = ss.fit_transform(X)
 y = ss.fit_transform(y.reshape(-1, 1))
 
-div = 0
+div = 0.8
 
 to_predict = torch.Tensor(X)
 to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))
@@ -65,10 +66,9 @@ to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict
 input_size = to_predict.shape[2]
 hidden_size = 130
 num_layers = 1
-epochs = 20
 
 model = CustomLSTM(input_size, hidden_size, num_layers, to_predict.shape[1])
-model.load_state_dict(torch.load('shopify_state_dict.pth'))
+model.load_state_dict(torch.load(f'{STOCK_NAME}_state_dict.pth'))
 
 train_predict = model(to_predict)
 pred = train_predict.data.numpy()
@@ -83,7 +83,7 @@ plt.plot(d, y, label="Actual")
 plt.plot(d, pred, label="Prediction")
 plt.xlabel('Date')
 plt.ylabel('Stock Closing Price')
-plt.title('LSTM Predicts Nvidia Stock')
+plt.title(f'LSTM Predicts {STOCK_NAME.capitalize()} Stock')
 plt.legend()
 plt.show()
 

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-STOCK_NAME = 'nvidia'
+STOCK_NAME = 'shopify'
 
 
 # Load data from pandas to a dictionary
@@ -176,7 +176,7 @@ def process_dat(data):
             print("Data is in chains of four")
             break
 
-    verify_itegrity(dict(data_array))
+    # verify_itegrity(dict(data_array))
     out = open("Processed-Data.json", "w")
     json.dump(dict(data_array), out, indent=4)
     return dict(data_array)
@@ -251,7 +251,6 @@ def verify_itegrity(data):
 
 
 data = load_dat_dict(f'all_data/{STOCK_NAME}_raw.csv')
-print(data)
 processed = process_dat(data)
 verify_itegrity(processed)
 

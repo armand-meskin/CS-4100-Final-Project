@@ -177,7 +177,7 @@ def process_dat(data):
             break
 
     verify_itegrity(dict(data_array))
-    out = open("processed_data.json", "w")
+    out = open("Processed-Data.json", "w")
     json.dump(dict(data_array), out, indent=4)
     return dict(data_array)
 
@@ -250,12 +250,14 @@ def verify_itegrity(data):
     print(f"Integrity verfied, {len(data_array)} verfied points")
 
 
-data = load_dat_dict(f'all_data/{STOCK_NAME}_data.csv')
+data = load_dat_dict(f'all_data/{STOCK_NAME}_raw.csv')
+print(data)
 processed = process_dat(data)
 verify_itegrity(processed)
 
+
 # we used json originally, but switched to pandas. so now we convert back to csv format
-def sliding_window(f_name, chunk_size, m_delta):
+def sliding_window(raw, dates, chunk_size, m_delta):
     X = []
     y = []
     d = []
@@ -272,7 +274,7 @@ def sliding_window(f_name, chunk_size, m_delta):
 
 
 data = json.load(open('processed_data.json'))
-raw, dates = np.array([i['4. close'] for i in data.values()]), np.array(list(data.keys()))
+raw, dates = np.array([i['close'] for i in data.values()]), np.array(list(data.keys()))
 
 X, y, d = sliding_window(raw, dates, 7800, 60)
 

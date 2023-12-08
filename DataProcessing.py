@@ -252,8 +252,6 @@ def verify_itegrity(data):
 
 data = load_dat_dict(f'all_data/{STOCK_NAME}_data.csv')
 processed = process_dat(data)
-
-processed = load_dat_dict('test-file2.json')
 verify_itegrity(processed)
 
 # we used json originally, but switched to pandas. so now we convert back to csv format

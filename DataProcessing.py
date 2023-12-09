@@ -4,9 +4,10 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-STOCK_NAME = 'shopify'
+STOCK_NAME = 'nvidia'
 
 
+'''
 # Load data from pandas to a dictionary
 def load_dat_dict(filename):
     data_df = pd.read_csv(filename, index_col='time').drop('index', axis=1)
@@ -287,3 +288,39 @@ for i in tqdm(range(len(X))):
             final_dict[f'feature {j}'].append(X[i][j])
 
 pd.DataFrame(final_dict).to_csv(f'all_data/{STOCK_NAME}_data.csv', index_label='index')
+'''
+
+def sliding_window(raw, dates, chunk_size, m_delta):
+    X = []
+    y = []
+    d = []
+
+    for i in tqdm(range(0, len(raw))):
+        if i + chunk_size + m_delta > len(raw) - 1:
+            break
+        window = [raw[j + i] for j in range(0, chunk_size, m_delta)]
+        X.append(window)
+        y.append(raw[i + chunk_size + m_delta])
+        d.append(dates[i + chunk_size + m_delta])
+
+    return np.array(X), np.array(y), np.array(d)
+
+data = json.load(open('processed-data.json'))
+time = np.array(list(data.keys()))
+raw = np.array([i['4. close'] for i in data.values()])
+
+X, y, d = sliding_window(raw, time, 7800, 60)
+
+final_dict = {'time': d, 'target': y}
+
+for i in tqdm(range(len(X))):
+    for j in range(len(X[i])):
+        if i == 0:
+            final_dict[f'feature {j}'] = [X[i][j]]
+        else:
+            final_dict[f'feature {j}'].append(X[i][j])
+
+pd.DataFrame(final_dict).to_csv(f'all_data/{STOCK_NAME}_data.csv', index_label='index')
+
+
+

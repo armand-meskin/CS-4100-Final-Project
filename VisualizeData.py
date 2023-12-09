@@ -6,7 +6,9 @@ from sklearn.preprocessing import StandardScaler
 import torch.nn.functional as F
 import numpy as np
 
-STOCK_NAME = 'pepsi'
+STOCK_NAME = 'shopify'
+DIV = 0.8
+
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size=1):
@@ -58,8 +60,6 @@ ss = StandardScaler()
 X = ss.fit_transform(X)
 y = ss.fit_transform(y.reshape(-1, 1))
 
-div = 0.8
-
 to_predict = torch.Tensor(X)
 to_predict = torch.reshape(to_predict, shape=(to_predict.shape[0], 1, to_predict.shape[1]))
 
@@ -76,9 +76,9 @@ pred = train_predict.data.numpy()
 pred = ss.inverse_transform(pred)
 y = ss.inverse_transform(y)
 
-print(movement_indicator(y, pred, div))
+print(movement_indicator(y, pred, DIV))
 
-plt.axvline(x=d[int(div * len(y))], color='r', linestyle='dashed')
+plt.axvline(x=d[int(DIV * len(y))], color='r', linestyle='dashed')
 plt.plot(d, y, label="Actual")
 plt.plot(d, pred, label="Prediction")
 plt.xlabel('Date')

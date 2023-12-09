@@ -8,7 +8,7 @@ from tqdm import tqdm
 import torch.nn.functional as F
 from os.path import exists
 
-STOCK_NAME = 'pepsi'
+STOCK_NAME = 'shopify'
 
 def sliding_window(f_name, chunk_size, m_delta):
     stocks_df = pd.read_csv(f_name)
